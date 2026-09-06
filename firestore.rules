@@ -1,0 +1,139 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.id is string && data.id == userId
+        && data.email is string && data.email.size() <= 256
+        && (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('coverConfig' in data) || data.coverConfig is map)
+        && (!('createdAt' in data) || data.createdAt is timestamp || data.createdAt is string)
+        && (!('updatedAt' in data) || data.updatedAt is timestamp || data.updatedAt is string);
+    }
+
+    function isValidJournalEntry(data, userId) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == userId
+        && data.title is string && data.title.size() <= 200
+        && (!('content' in data) || (data.content is string && data.content.size() <= 50000))
+        && (!('mood' in data) || (data.mood is string && data.mood.size() <= 50))
+        && (!('summary' in data) || (data.summary is string && data.summary.size() <= 5000))
+        && (!('tags' in data) || (data.tags is list && data.tags.size() <= 20))
+        && (!('messages' in data) || (data.messages is list && data.messages.size() <= 200))
+        && (!('pageObjects' in data) || (data.pageObjects is list && data.pageObjects.size() <= 100))
+        && (!('paperStyle' in data) || (data.paperStyle is string && data.paperStyle.size() <= 50))
+        && (!('fontStyle' in data) || (data.fontStyle is string && data.fontStyle.size() <= 50))
+        && (!('geminiReflection' in data) || (data.geminiReflection is string && data.geminiReflection.size() <= 10000));
+    }
+
+    function isValidJournalSummary(data, userId) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == userId
+        && data.title is string && data.title.size() <= 200
+        && data.insights is string && data.insights.size() <= 10000
+        && (!('emotionalTone' in data) || (data.emotionalTone is string && data.emotionalTone.size() <= 100))
+        && (!('keyThemes' in data) || (data.keyThemes is list && data.keyThemes.size() <= 20))
+        && (!('actionItems' in data) || (data.actionItems is list && data.actionItems.size() <= 20));
+    }
+
+    function isValidIntention(data, userId) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == userId
+        && data.title is string && data.title.size() <= 200
+        && (!('description' in data) || (data.description is string && data.description.size() <= 2000))
+        && data.status is string && data.status.size() <= 50
+        && (!('targetDate' in data) || (data.targetDate is string && data.targetDate.size() <= 50))
+        && (!('reminderNote' in data) || (data.reminderNote is string && data.reminderNote.size() <= 500));
+    }
+
+    function isValidFutureLetter(data, userId) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == userId
+        && data.title is string && data.title.size() <= 200
+        && data.content is string && data.content.size() <= 20000
+        && data.unlockDate is string && data.unlockDate.size() <= 50
+        && (!('sealed' in data) || data.sealed is bool);
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId);
+      allow update: if isOwner(userId) && isValidId(userId) && isValidUserProfile(incoming(), userId)
+        && incoming().id == existing().id;
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /entries/{entryId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(entryId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(entryId)
+          && incoming().userId == request.auth.uid
+          && isValidJournalEntry(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(entryId)
+          && incoming().userId == existing().userId
+          && isValidJournalEntry(incoming(), userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(entryId);
+      }
+
+      match /summaries/{summaryId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(summaryId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(summaryId)
+          && incoming().userId == request.auth.uid
+          && isValidJournalSummary(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(summaryId)
+          && incoming().userId == existing().userId
+          && isValidJournalSummary(incoming(), userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(summaryId);
+      }
+
+      match /intentions/{intentionId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(intentionId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(intentionId)
+          && incoming().userId == request.auth.uid
+          && isValidIntention(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(intentionId)
+          && incoming().userId == existing().userId
+          && isValidIntention(incoming(), userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(intentionId);
+      }
+
+      match /letters/{letterId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(letterId);
+        allow list: if isOwner(userId) && isValidId(userId);
+        allow create: if isOwner(userId) && isValidId(userId) && isValidId(letterId)
+          && incoming().userId == request.auth.uid
+          && isValidFutureLetter(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(userId) && isValidId(letterId)
+          && incoming().userId == existing().userId
+          && isValidFutureLetter(incoming(), userId);
+        allow delete: if isOwner(userId) && isValidId(userId) && isValidId(letterId);
+      }
+    }
+  }
+}

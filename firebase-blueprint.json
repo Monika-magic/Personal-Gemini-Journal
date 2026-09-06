@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private user profile representing an authenticated user account",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique user UID matching auth.uid" },
+        "email": { "type": "string", "format": "email", "description": "User email address" },
+        "displayName": { "type": "string", "maxLength": 100, "description": "User chosen friendly display name with emojis" },
+        "coverConfig": { "type": "object", "description": "Custom physical diary cover settings such as color, style, title, and charms" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp" }
+      },
+      "required": ["id", "email", "createdAt"]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "User private journal entry, scrapbook page objects, and interactive Gemini conversation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique entry identifier" },
+        "userId": { "type": "string", "description": "Owner UID matching auth.uid" },
+        "title": { "type": "string", "maxLength": 200, "description": "Journal entry title or topic" },
+        "content": { "type": "string", "maxLength": 50000, "description": "Primary journal note or prompt content" },
+        "messages": {
+          "type": "array",
+          "description": "Multi-turn conversation history between user and Gemini"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Categorization or reflective tags"
+        },
+        "mood": { "type": "string", "maxLength": 50, "description": "Reflected mood or emotional tag" },
+        "summary": { "type": "string", "maxLength": 5000, "description": "AI-generated reflection summary" },
+        "pageObjects": {
+          "type": "array",
+          "description": "Scrapbook stickers, photos, and decorative items placed on this page"
+        },
+        "paperStyle": { "type": "string", "maxLength": 50, "description": "Paper aesthetic (e.g. plain, ruled, grid, vintage, floral)" },
+        "fontStyle": { "type": "string", "maxLength": 50, "description": "Typography style (e.g. handwritten, editorial)" },
+        "geminiReflection": { "type": "string", "maxLength": 10000, "description": "AI reflection note pinned to the diary page" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last updated server timestamp" }
+      },
+      "required": ["id", "userId", "title", "createdAt", "updatedAt"]
+    },
+    "JournalSummary": {
+      "title": "JournalSummary",
+      "description": "AI-generated synthesized reflections, themes, and personal growth insights",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique summary identifier" },
+        "userId": { "type": "string", "description": "Owner UID matching auth.uid" },
+        "entryId": { "type": "string", "description": "Associated journal entry ID" },
+        "title": { "type": "string", "maxLength": 200, "description": "Summary title" },
+        "keyThemes": { "type": "array", "description": "Key themes identified by Gemini" },
+        "insights": { "type": "string", "maxLength": 10000, "description": "Reflective insights and takeaways" },
+        "actionItems": { "type": "array", "description": "Recommended mindful actions or follow-ups" },
+        "emotionalTone": { "type": "string", "maxLength": 100, "description": "Detected tone and sentiment" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation server timestamp" }
+      },
+      "required": ["id", "userId", "title", "insights", "createdAt"]
+    },
+    "Intention": {
+      "title": "Intention",
+      "description": "User confirmed mindfulness intentions, goals, and recurring habits discovered with Gemini",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique intention identifier" },
+        "userId": { "type": "string", "description": "Owner UID matching auth.uid" },
+        "title": { "type": "string", "maxLength": 200, "description": "Intention title" },
+        "description": { "type": "string", "maxLength": 2000, "description": "Details or notes" },
+        "status": { "type": "string", "maxLength": 50, "description": "Status: active, due_soon, completed, paused" },
+        "targetDate": { "type": "string", "maxLength": 50, "description": "Target or deadline date" },
+        "reminderNote": { "type": "string", "maxLength": 500, "description": "Gentle reminder text" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "userId", "title", "status", "createdAt"]
+    },
+    "FutureLetter": {
+      "title": "FutureLetter",
+      "description": "Letter to Future Self kept in the diary secret pocket until the unlock date",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique letter identifier" },
+        "userId": { "type": "string", "description": "Owner UID matching auth.uid" },
+        "title": { "type": "string", "maxLength": 200, "description": "Letter title" },
+        "content": { "type": "string", "maxLength": 20000, "description": "Encapsulated letter message" },
+        "unlockDate": { "type": "string", "maxLength": 50, "description": "Date when letter unlocks (YYYY-MM-DD)" },
+        "sealed": { "type": "boolean", "description": "Whether the envelope is currently sealed" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "userId", "title", "content", "unlockDate", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user document accessible strictly by the user"
+    },
+    "/users/{userId}/entries/{entryId}": {
+      "schema": "JournalEntry",
+      "description": "Private journal entries and multi-turn conversations isolated by user"
+    },
+    "/users/{userId}/summaries/{summaryId}": {
+      "schema": "JournalSummary",
+      "description": "Private AI-generated journal insights and reflections isolated by user"
+    },
+    "/users/{userId}/intentions/{intentionId}": {
+      "schema": "Intention",
+      "description": "Private intentions and mindful goals isolated by user"
+    },
+    "/users/{userId}/letters/{letterId}": {
+      "schema": "FutureLetter",
+      "description": "Private secret pocket letters to future self isolated by user"
+    }
+  }
+}

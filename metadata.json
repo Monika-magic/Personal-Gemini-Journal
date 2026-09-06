@@ -1,0 +1,6 @@
+{
+  "name": "Personal Gemini Journal",
+  "description": "An immersive digital physical diary and scrapbook with customizable covers, realistic page-turning, stickers, freeform photos, voice narration, mindful intentions, secret pockets, and a grounded Gemini companion.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
